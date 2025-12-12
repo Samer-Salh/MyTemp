@@ -1,0 +1,76 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Temperature Monitor</title>
+  <style>
+    body { font-family: Arial; text-align: center; margin-top: 50px; }
+    #temp { font-size: 48px; color: #007acc; }
+    #chart { width: 600px; height: 400px; margin: auto; }
+  </style>
+</head>
+<body>
+
+<h1>Current Temperature</h1>
+<div id="temp">-- °C</div>
+<canvas id="chart"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('chart').getContext('2d');
+let tempData = {
+  labels: [],
+  datasets: [{
+    label: 'Temperature (°C)',
+    data: [],
+    borderColor: 'rgb(0, 122, 204)',
+    fill: false,
+    tension: 0.2
+  }]
+};
+
+let chart = new Chart(ctx, {
+  type: 'line',
+  data: tempData,
+  options: {
+    animation: false,
+    scales: {
+      x: { display: true, title: { display: true, text: 'Time' } },
+      y: { display: true, title: { display: true, text: '°C' } }
+    }
+  }
+});
+
+async function updateTemperature() {
+  try {
+    const res = await fetch('http://localhost:1880/temperature');
+    const data = await res.json();
+    
+    const temp = data.value; // numeriskt värde
+    const now = new Date().toLocaleTimeString();
+    
+    document.getElementById('temp').innerText = temp + ' °C';
+    
+    tempData.labels.push(now);
+    tempData.datasets[0].data.push(temp);
+    
+    // Håll bara senaste 20 värdena
+    if(tempData.labels.length > 20){
+      tempData.labels.shift();
+      tempData.datasets[0].data.shift();
+    }
+
+    chart.update();
+  } catch (err) {
+    console.error('Error fetching temperature:', err);
+  }
+}
+
+// Uppdatera varje sekund
+setInterval(updateTemperature, 1000);
+updateTemperature();
+</script>
+
+</body>
+</html>
